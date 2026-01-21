@@ -9,6 +9,635 @@ let feedbackItems = [];
 let consoleLogs = [];
 const maxConsoleLogs = 100;
 
+// ==========================================
+// AI Classification Label Definitions
+// ==========================================
+
+const AI_LABEL_CONFIG = {
+    // Allowed product areas
+    productAreas: [
+        'Cards',
+        'Payments',
+        'OnboardingKYC',
+        'Support',
+        'AppUX',
+        'PricingFees',
+        'Security',
+        'ReliabilityPerformance'
+    ],
+
+    // Topics (flat list)
+    topics: [
+        'Fees',
+        'KYC',
+        'Bug',
+        'UX',
+        'Performance',
+        'ResponseTime',
+        'Quality',
+        'SecurityConcern',
+        'Other'
+    ],
+
+    // Subtopics by topic
+    subtopics: {
+        'Fees': ['exchange_fee', 'withdrawal_fee', 'subscription_fee', 'unexpected_charge', 'unclear_pricing', 'Other'],
+        'KYC': ['document_rejected', 'selfie_failed', 'verification_slow', 'unclear_requirements', 'Other'],
+        'Bug': ['app_crash', 'feature_not_working', 'login_issue', 'Other'],
+        'UX': ['navigation_confusing', 'missing_feature', 'design_issue', 'Other'],
+        'Performance': ['slow_loading', 'freezes', 'downtime', 'Other'],
+        'ResponseTime': ['Other'],
+        'Quality': ['Other'],
+        'SecurityConcern': ['Other'],
+        'Other': ['Other']
+    },
+
+    // Feature labels (flat list)
+    featureLabels: [
+        'Card Controls',
+        'Card Screen',
+        'Currency Exchange',
+        'Cash Withdrawal',
+        'Payment Processing',
+        'KYC Flow',
+        'Support Chat',
+        'Push Notifications',
+        'App Navigation',
+        'Subscription Fees',
+        'Security Monitoring'
+    ],
+
+    // Classification thresholds
+    confidenceThreshold: 0.75,
+
+    // Keyword mappings for classification
+    keywordMappings: {
+        // Product areas
+        'Cards': ['card', 'virtual card', 'physical card', 'card controls', 'freeze card', 'block card', 'card limit'],
+        'Payments': ['payment', 'transfer', 'send money', 'receive', 'transaction', 'pay', 'withdraw', 'deposit'],
+        'OnboardingKYC': ['kyc', 'verification', 'document', 'selfie', 'identity', 'onboarding', 'sign up', 'register'],
+        'Support': ['support', 'help', 'chat', 'contact', 'agent', 'response', 'ticket'],
+        'AppUX': ['app', 'interface', 'design', 'navigation', 'button', 'screen', 'layout', 'confusing', 'intuitive'],
+        'PricingFees': ['fee', 'price', 'cost', 'charge', 'subscription', 'pricing', 'expensive', 'free'],
+        'Security': ['security', 'password', 'login', '2fa', 'authentication', 'hack', 'fraud', 'suspicious'],
+        'ReliabilityPerformance': ['slow', 'crash', 'freeze', 'loading', 'down', 'error', 'bug', 'not working', 'performance'],
+        // Topics
+        'Fees': ['fee', 'charge', 'cost', 'price', 'expensive', 'subscription'],
+        'KYC': ['kyc', 'verification', 'document', 'selfie', 'identity', 'rejected'],
+        'Bug': ['bug', 'crash', 'error', 'broken', 'not working', 'issue', 'problem'],
+        'UX': ['confusing', 'difficult', 'unclear', 'design', 'navigation', 'missing'],
+        'Performance': ['slow', 'loading', 'freeze', 'lag', 'timeout'],
+        'ResponseTime': ['response', 'wait', 'reply', 'hours', 'days'],
+        'SecurityConcern': ['security', 'hack', 'fraud', 'suspicious', 'unauthorized']
+    }
+};
+
+// ==========================================
+// AI Classification Engine
+// ==========================================
+
+/**
+ * Classifies a feedback item with structured labels
+ * @param {Object} feedbackItem - The feedback item to classify
+ * @returns {Object} - Classification result with labels
+ */
+function classifyFeedback(feedbackItem) {
+    const text = `${feedbackItem.title || ''} ${feedbackItem.description || ''}`.toLowerCase();
+    const url = feedbackItem.sessionContext?.url || '';
+    const category = feedbackItem.category;
+
+    // Step 1: Detect product area from URL and keywords
+    const productArea = detectProductArea(text, url);
+
+    // Step 2: Detect topic and subtopic
+    const { topic, subtopic } = detectTopicSubtopic(text, category);
+
+    // Step 3: Determine feature label
+    const featureLabel = detectFeatureLabel(text, productArea);
+
+    // Step 4: Calculate confidence score
+    const confidence = calculateConfidence(text, productArea, topic);
+
+    // Step 5: Apply guardrails
+    const validatedLabels = applyGuardrails({
+        product_area: productArea,
+        topic: topic,
+        subtopic: subtopic,
+        feature_label: featureLabel,
+        confidence: confidence
+    });
+
+    return {
+        ...validatedLabels,
+        needs_review: validatedLabels.confidence < AI_LABEL_CONFIG.confidenceThreshold,
+        classified_at: new Date().toISOString(),
+        manually_verified: false,
+        classification_version: '1.0'
+    };
+}
+
+/**
+ * Detects product area from text and URL context
+ */
+function detectProductArea(text, url) {
+    const urlPath = url.toLowerCase();
+
+    // Check URL path for hints
+    if (urlPath.includes('/card')) return 'Cards';
+    if (urlPath.includes('/payment') || urlPath.includes('/transfer')) return 'Payments';
+    if (urlPath.includes('/kyc') || urlPath.includes('/verification') || urlPath.includes('/onboarding')) return 'OnboardingKYC';
+    if (urlPath.includes('/support') || urlPath.includes('/help')) return 'Support';
+    if (urlPath.includes('/settings') || urlPath.includes('/profile')) return 'AppUX';
+    if (urlPath.includes('/pricing') || urlPath.includes('/subscription')) return 'PricingFees';
+    if (urlPath.includes('/security')) return 'Security';
+
+    // Check text for keyword matches
+    let bestMatch = { area: 'AppUX', score: 0 };
+
+    for (const [area, keywords] of Object.entries(AI_LABEL_CONFIG.keywordMappings)) {
+        if (AI_LABEL_CONFIG.productAreas.includes(area)) {
+            const matchCount = keywords.filter(kw => text.includes(kw)).length;
+            if (matchCount > bestMatch.score) {
+                bestMatch = { area, score: matchCount };
+            }
+        }
+    }
+
+    return bestMatch.score > 0 ? bestMatch.area : 'AppUX';
+}
+
+/**
+ * Detects topic and subtopic based on text content and feedback category
+ */
+function detectTopicSubtopic(text, category) {
+    // Fees detection
+    if (text.match(/fee|charge|cost|price|expensive|subscription|pricing/i)) {
+        if (text.match(/exchange|convert|currency/i)) return { topic: 'Fees', subtopic: 'exchange_fee' };
+        if (text.match(/withdraw/i)) return { topic: 'Fees', subtopic: 'withdrawal_fee' };
+        if (text.match(/subscription|monthly|plan/i)) return { topic: 'Fees', subtopic: 'subscription_fee' };
+        if (text.match(/unexpected|surprise|hidden/i)) return { topic: 'Fees', subtopic: 'unexpected_charge' };
+        if (text.match(/unclear|confus|understand/i)) return { topic: 'Fees', subtopic: 'unclear_pricing' };
+        return { topic: 'Fees', subtopic: 'Other' };
+    }
+
+    // KYC detection
+    if (text.match(/kyc|verification|document|selfie|identity|onboard/i)) {
+        if (text.match(/reject/i)) return { topic: 'KYC', subtopic: 'document_rejected' };
+        if (text.match(/selfie|photo|face/i)) return { topic: 'KYC', subtopic: 'selfie_failed' };
+        if (text.match(/slow|wait|long|days/i)) return { topic: 'KYC', subtopic: 'verification_slow' };
+        if (text.match(/unclear|confus|what|how/i)) return { topic: 'KYC', subtopic: 'unclear_requirements' };
+        return { topic: 'KYC', subtopic: 'Other' };
+    }
+
+    // Bug detection
+    if (text.match(/bug|crash|error|broken|not working|issue|problem|fail/i)) {
+        if (text.match(/crash/i)) return { topic: 'Bug', subtopic: 'app_crash' };
+        if (text.match(/login|sign in|auth/i)) return { topic: 'Bug', subtopic: 'login_issue' };
+        return { topic: 'Bug', subtopic: 'feature_not_working' };
+    }
+
+    // Performance detection
+    if (text.match(/slow|loading|lag|freeze|timeout|performance/i)) {
+        if (text.match(/slow|loading|lag/i)) return { topic: 'Performance', subtopic: 'slow_loading' };
+        if (text.match(/freeze|stuck|hang/i)) return { topic: 'Performance', subtopic: 'freezes' };
+        if (text.match(/down|outage|unavailable/i)) return { topic: 'Performance', subtopic: 'downtime' };
+        return { topic: 'Performance', subtopic: 'Other' };
+    }
+
+    // UX detection
+    if (text.match(/confus|difficult|unclear|design|navigation|missing|intuitive/i)) {
+        if (text.match(/navigation|find|where/i)) return { topic: 'UX', subtopic: 'navigation_confusing' };
+        if (text.match(/missing|add|need|want/i)) return { topic: 'UX', subtopic: 'missing_feature' };
+        if (text.match(/design|look|ugly|beautiful/i)) return { topic: 'UX', subtopic: 'design_issue' };
+        return { topic: 'UX', subtopic: 'Other' };
+    }
+
+    // Response time detection
+    if (text.match(/response|reply|wait|support|hours|days/i)) {
+        return { topic: 'ResponseTime', subtopic: 'Other' };
+    }
+
+    // Security detection
+    if (text.match(/security|hack|fraud|suspicious|unauthorized/i)) {
+        return { topic: 'SecurityConcern', subtopic: 'Other' };
+    }
+
+    // Map feedback category to default topics
+    const categoryTopicMap = {
+        'bug': { topic: 'Bug', subtopic: 'feature_not_working' },
+        'feature': { topic: 'UX', subtopic: 'missing_feature' },
+        'improvement': { topic: 'UX', subtopic: 'Other' }
+    };
+
+    return categoryTopicMap[category] || { topic: 'Other', subtopic: 'Other' };
+}
+
+/**
+ * Detects the specific feature label
+ */
+function detectFeatureLabel(text, productArea) {
+    const featureLabels = AI_LABEL_CONFIG.featureLabels;
+
+    // Keyword matching for features
+    for (const feature of featureLabels) {
+        const featureWords = feature.toLowerCase().split(/\s+/);
+        if (featureWords.some(word => text.includes(word))) {
+            return feature;
+        }
+    }
+
+    // Default feature based on product area
+    const areaFeatureMap = {
+        'Cards': 'Card Screen',
+        'Payments': 'Payment Processing',
+        'OnboardingKYC': 'KYC Flow',
+        'Support': 'Support Chat',
+        'AppUX': 'App Navigation',
+        'PricingFees': 'Subscription Fees',
+        'Security': 'Security Monitoring',
+        'ReliabilityPerformance': 'App Navigation'
+    };
+
+    return areaFeatureMap[productArea] || 'App Navigation';
+}
+
+/**
+ * Calculates confidence score based on match quality
+ */
+function calculateConfidence(text, productArea, topic) {
+    let confidence = 0.5;
+
+    // Boost for specific keyword matches
+    const areaKeywords = AI_LABEL_CONFIG.keywordMappings[productArea] || [];
+    const topicKeywords = AI_LABEL_CONFIG.keywordMappings[topic] || [];
+
+    const areaMatches = areaKeywords.filter(kw => text.includes(kw)).length;
+    const topicMatches = topicKeywords.filter(kw => text.includes(kw)).length;
+
+    confidence += Math.min(areaMatches * 0.1, 0.25);
+    confidence += Math.min(topicMatches * 0.1, 0.25);
+
+    // Boost for longer, more detailed descriptions
+    if (text.length > 100) confidence += 0.1;
+    if (text.length > 200) confidence += 0.05;
+
+    // Cap at 0.95 for simulated classification
+    return Math.min(Math.round(confidence * 100) / 100, 0.95);
+}
+
+/**
+ * Validates labels against allowed sets (guardrails)
+ */
+function applyGuardrails(labels) {
+    const validated = { ...labels };
+
+    // Validate product_area
+    if (!AI_LABEL_CONFIG.productAreas.includes(validated.product_area)) {
+        validated.product_area = 'AppUX';
+        validated.confidence *= 0.8;
+    }
+
+    // Validate topic (now a flat array)
+    if (!AI_LABEL_CONFIG.topics.includes(validated.topic)) {
+        validated.topic = 'Other';
+        validated.confidence *= 0.8;
+    }
+
+    // Validate subtopic belongs to topic
+    const validSubtopics = AI_LABEL_CONFIG.subtopics[validated.topic] || ['Other'];
+    if (!validSubtopics.includes(validated.subtopic)) {
+        validated.subtopic = validSubtopics[0] || 'Other';
+        validated.confidence *= 0.9;
+    }
+
+    // Validate feature_label (now a flat array)
+    if (!AI_LABEL_CONFIG.featureLabels.includes(validated.feature_label)) {
+        validated.feature_label = 'App Navigation';
+        validated.confidence *= 0.9;
+    }
+
+    return validated;
+}
+
+/**
+ * Reclassifies all existing feedback items
+ */
+function reclassifyAllFeedback() {
+    feedbackItems.forEach(item => {
+        if (!item.aiLabels || !item.aiLabels.manually_verified) {
+            item.aiLabels = classifyFeedback(item);
+        }
+    });
+    saveFeedbackToStorage();
+    updateDashboard();
+    updateAISummaryTab();
+    showInAppNotification('AI Classification Complete', `Reclassified ${feedbackItems.length} items`);
+}
+
+// ==========================================
+// AI Summary Tab Functions
+// ==========================================
+
+/**
+ * Switches between admin dashboard tabs
+ */
+function switchAdminTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    if (tabName === 'feedback') {
+        document.querySelector('.admin-tab:first-child')?.classList.add('active');
+        document.getElementById('feedbackTabContent').classList.add('active');
+        document.getElementById('aiSummaryTabContent').classList.remove('active');
+    } else if (tabName === 'ai-summary') {
+        document.querySelector('.admin-tab:last-child')?.classList.add('active');
+        document.getElementById('feedbackTabContent').classList.remove('active');
+        document.getElementById('aiSummaryTabContent').classList.add('active');
+        updateAISummaryTab();
+    }
+}
+
+/**
+ * Updates the AI Summary tab content
+ */
+function updateAISummaryTab() {
+    updateAIStats();
+    renderAICategoryGroups();
+}
+
+/**
+ * Updates AI summary statistics
+ */
+function updateAIStats() {
+    const classified = feedbackItems.filter(f => f.aiLabels).length;
+    const needsReview = feedbackItems.filter(f => f.aiLabels?.needs_review).length;
+    const verified = feedbackItems.filter(f => f.aiLabels?.manually_verified).length;
+
+    const classifiedEl = document.getElementById('classifiedCount');
+    const needsReviewEl = document.getElementById('needsReviewCount');
+    const verifiedEl = document.getElementById('verifiedCount');
+
+    if (classifiedEl) classifiedEl.textContent = classified;
+    if (needsReviewEl) needsReviewEl.textContent = needsReview;
+    if (verifiedEl) verifiedEl.textContent = verified;
+}
+
+/**
+ * Groups feedback items by product_area
+ */
+function groupFeedbackByProductArea() {
+    const groups = {};
+    AI_LABEL_CONFIG.productAreas.forEach(area => {
+        groups[area] = [];
+    });
+
+    feedbackItems.forEach(item => {
+        const area = item.aiLabels?.product_area || 'AppUX';
+        if (!groups[area]) groups[area] = [];
+        groups[area].push(item);
+    });
+
+    return groups;
+}
+
+/**
+ * Groups items by feature label
+ */
+function groupByFeatureLabel(items) {
+    const features = {};
+    items.forEach(item => {
+        const feature = item.aiLabels?.feature_label || 'General';
+        features[feature] = (features[feature] || 0) + 1;
+    });
+    return features;
+}
+
+/**
+ * Calculates trend for a category (items added in last 7 days)
+ */
+function calculateTrend(items) {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const recentItems = items.filter(item => new Date(item.submittedAt) > weekAgo);
+    return { count: recentItems.length };
+}
+
+/**
+ * Generates an AI summary for a category
+ */
+function generateCategorySummary(items) {
+    if (items.length === 0) return 'No feedback in this category.';
+
+    // Analyze common patterns
+    const topics = {};
+    const priorities = { critical: 0, high: 0, medium: 0, low: 0 };
+
+    items.forEach(item => {
+        const topic = item.aiLabels?.topic || 'General';
+        topics[topic] = (topics[topic] || 0) + 1;
+        priorities[item.priority] = (priorities[item.priority] || 0) + 1;
+    });
+
+    const topTopic = Object.entries(topics).sort((a, b) => b[1] - a[1])[0];
+    const criticalCount = priorities.critical + priorities.high;
+
+    let summary = `${items.length} feedback item${items.length !== 1 ? 's' : ''} in this category. `;
+
+    if (topTopic) {
+        summary += `Most relate to ${topTopic[0].toLowerCase()} issues. `;
+    }
+
+    if (criticalCount > 0) {
+        summary += `${criticalCount} high-priority item${criticalCount !== 1 ? 's' : ''} require attention.`;
+    }
+
+    return summary;
+}
+
+/**
+ * Renders all AI category groups
+ */
+function renderAICategoryGroups() {
+    const container = document.getElementById('aiCategoryGroups');
+    if (!container) return;
+
+    // Group feedback by product_area
+    const groups = groupFeedbackByProductArea();
+
+    // Color mapping for product areas
+    const areaColors = {
+        'Cards': '#3b82f6',
+        'Payments': '#10b981',
+        'OnboardingKYC': '#f59e0b',
+        'Support': '#f97316',
+        'AppUX': '#8b5cf6',
+        'PricingFees': '#ef4444',
+        'Security': '#dc2626',
+        'ReliabilityPerformance': '#06b6d4'
+    };
+
+    // Filter groups with items
+    const nonEmptyGroups = Object.entries(groups)
+        .filter(([area, items]) => items.length > 0)
+        .sort((a, b) => b[1].length - a[1].length);
+
+    if (nonEmptyGroups.length === 0) {
+        container.innerHTML = `
+            <div class="ai-empty-state">
+                <i class="fas fa-robot"></i>
+                <p>No classified feedback yet. Submit feedback to see AI-powered insights.</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Render groups
+    container.innerHTML = nonEmptyGroups.map(([area, items]) => {
+        const color = areaColors[area] || '#9ca3af';
+        const trend = calculateTrend(items);
+        const summary = generateCategorySummary(items);
+        const features = groupByFeatureLabel(items);
+        const categoryId = area.toLowerCase().replace(/\s+/g, '-');
+
+        return `
+            <div class="ai-category-group" id="group-${categoryId}">
+                <div class="ai-category-header" onclick="toggleAICategory('${categoryId}')">
+                    <div class="ai-category-left">
+                        <i class="fas fa-chevron-right expand-icon"></i>
+                        <div class="ai-category-dot" style="background: ${color};"></div>
+                        <span class="ai-category-name">${escapeHtml(area)}</span>
+                        <span class="ai-category-badge">${items.length} item${items.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="ai-category-right">
+                        ${trend.count > 0 ? `
+                            <div class="ai-trend-indicator positive">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>+${trend.count} this week</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="ai-category-content hidden" id="category-${categoryId}">
+                    <div class="ai-category-summary">
+                        <div class="ai-summary-text">
+                            <i class="fas fa-robot"></i>
+                            <p>${escapeHtml(summary)}</p>
+                        </div>
+                        <button class="ai-regenerate-btn" onclick="event.stopPropagation(); regenerateSummary('${area}')">
+                            <i class="fas fa-sync-alt"></i> Regenerate
+                        </button>
+                    </div>
+                    <div class="ai-subcategory-list">
+                        ${Object.entries(features).map(([feature, count]) => `
+                            <div class="ai-subcategory-item">
+                                <span class="ai-subcategory-name">${escapeHtml(feature)}</span>
+                                <span class="ai-subcategory-count">${count}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="ai-feedback-items">
+                        ${items.slice(0, 5).map(item => renderAIFeedbackItem(item)).join('')}
+                        ${items.length > 5 ? `
+                            <div class="ai-show-more" onclick="showAllInCategory('${area}')">
+                                Show all ${items.length} items
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Renders a compact feedback item for the AI summary
+ */
+function renderAIFeedbackItem(item) {
+    const confidence = item.aiLabels?.confidence || 0;
+    const confidencePercent = Math.round(confidence * 100);
+    const isLowConfidence = confidence < AI_LABEL_CONFIG.confidenceThreshold;
+
+    return `
+        <div class="ai-feedback-item" onclick="openFeedbackDetail('${item.id}')">
+            <div class="ai-feedback-confidence">
+                <div class="confidence-bar ${isLowConfidence ? 'low' : ''}" style="width: ${confidencePercent}%"></div>
+            </div>
+            <div class="ai-feedback-title">${escapeHtml(item.title)}</div>
+            <div class="ai-feedback-meta">
+                <span class="badge badge-${item.priority}">${formatPriority(item.priority)}</span>
+                ${item.aiLabels?.needs_review ? '<span class="needs-review-badge"><i class="fas fa-exclamation"></i> Review</span>' : ''}
+                <span class="ai-feedback-date">${formatDate(item.submittedAt)}</span>
+            </div>
+            <div class="ai-feedback-labels">
+                ${item.aiLabels?.topic ? `<span class="ai-label">${escapeHtml(item.aiLabels.topic)}</span>` : ''}
+                ${item.aiLabels?.subtopic ? `<span class="ai-label">${escapeHtml(item.aiLabels.subtopic)}</span>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Toggles expansion of an AI category group
+ */
+function toggleAICategory(categoryId) {
+    const group = document.getElementById(`group-${categoryId}`);
+    const content = document.getElementById(`category-${categoryId}`);
+
+    if (!group || !content) return;
+
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        group.classList.add('expanded');
+    } else {
+        content.classList.add('hidden');
+        group.classList.remove('expanded');
+    }
+}
+
+/**
+ * Regenerates summary for a category
+ */
+function regenerateSummary(area) {
+    const groups = groupFeedbackByProductArea();
+    const items = groups[area] || [];
+    const newSummary = generateCategorySummary(items);
+
+    // Update the summary text
+    const categoryId = area.toLowerCase().replace(/\s+/g, '-');
+    const summaryElement = document.querySelector(`#category-${categoryId} .ai-summary-text p`);
+    if (summaryElement) {
+        summaryElement.textContent = newSummary;
+    }
+
+    showInAppNotification('Summary regenerated', `Updated summary for ${area}`);
+}
+
+/**
+ * Shows all items in a category (switches to feedback tab with filter)
+ */
+function showAllInCategory(area) {
+    // For now, just switch to feedback tab
+    // In future, could add filtering
+    switchAdminTab('feedback');
+    showInAppNotification('Category: ' + area, `Showing all feedback items`);
+}
+
+/**
+ * Formats priority for display
+ */
+function formatPriority(priority) {
+    const priorityMap = {
+        'critical': 'Critical',
+        'high': 'High',
+        'medium': 'Medium',
+        'low': 'Low'
+    };
+    return priorityMap[priority] || priority;
+}
+
 // Intercept console methods to capture logs
 (function() {
     const originalConsole = {
@@ -245,11 +874,15 @@ function submitFeedbackFromWidget(event) {
             comments: []
         };
 
+        // AI Classification
+        feedbackItem.aiLabels = classifyFeedback(feedbackItem);
+
         feedbackItems.push(feedbackItem);
         saveFeedbackToStorage();
         updateDashboard();
 
         console.log('📝 Feedback submitted:', feedbackItem.ticketId);
+        console.log('🤖 AI Labels:', feedbackItem.aiLabels);
 
         // Reset to home view first, then close widget
         showChatWidgetHome();
@@ -879,6 +1512,9 @@ function submitFeedback(event) {
             comments: []
         };
 
+        // AI Classification
+        feedbackItem.aiLabels = classifyFeedback(feedbackItem);
+
         // Add to storage
         feedbackItems.push(feedbackItem);
         saveFeedbackToStorage();
@@ -887,6 +1523,7 @@ function submitFeedback(event) {
         updateDashboard();
 
         console.log('✅ Feedback saved:', feedbackItem.ticketId);
+        console.log('🤖 AI Labels:', feedbackItem.aiLabels);
 
         // Close modal immediately
         closeFeedbackModal();
@@ -1678,7 +2315,29 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         feedbackItems = exampleFeedback;
+
+        // Classify demo feedback with AI
+        feedbackItems.forEach(item => {
+            item.aiLabels = classifyFeedback(item);
+        });
+
         saveFeedbackToStorage();
+        updateDashboard();
+    } else {
+        // Migrate existing feedback items that don't have AI labels
+        let migrated = 0;
+        feedbackItems.forEach(item => {
+            if (!item.aiLabels) {
+                item.aiLabels = classifyFeedback(item);
+                migrated++;
+            }
+        });
+
+        if (migrated > 0) {
+            saveFeedbackToStorage();
+            console.log(`🤖 AI Classification: Migrated ${migrated} existing feedback items`);
+        }
+
         updateDashboard();
     }
 });

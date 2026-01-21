@@ -2002,6 +2002,418 @@
             font-size: 3rem;
             margin-bottom: 1rem;
         }
+
+        /* ========== AI SUMMARY TAB STYLES ========== */
+
+        /* Admin Tab Navigation */
+        .admin-tabs-container {
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-tabs {
+            display: flex;
+            gap: 0;
+        }
+
+        .admin-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+
+        .admin-tab:hover {
+            color: var(--text-primary);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .admin-tab.active {
+            color: var(--text-primary);
+            border-bottom-color: #667eea;
+        }
+
+        .admin-tab i {
+            font-size: 16px;
+        }
+
+        .admin-tab-content {
+            display: none;
+        }
+
+        .admin-tab-content.active {
+            display: block;
+        }
+
+        /* AI Stats Row */
+        .ai-stats-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .ai-stat-card {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--bg-card);
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .ai-stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: rgba(102, 126, 234, 0.15);
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .ai-stat-icon.warning {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+
+        .ai-stat-icon.success {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .ai-stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .ai-stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* AI Category Groups */
+        .ai-category-groups {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .ai-category-group {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .ai-category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .ai-category-header:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .ai-category-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ai-category-left .expand-icon {
+            color: var(--text-muted);
+            font-size: 12px;
+            transition: transform 0.2s;
+            width: 16px;
+        }
+
+        .ai-category-group.expanded .expand-icon {
+            transform: rotate(90deg);
+        }
+
+        .ai-category-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .ai-category-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .ai-category-badge {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .ai-category-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .ai-trend-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .ai-trend-indicator.positive {
+            color: #22c55e;
+        }
+
+        .ai-trend-indicator.negative {
+            color: #ef4444;
+        }
+
+        /* Category Content */
+        .ai-category-content {
+            padding: 0 1.25rem 1.25rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .ai-category-content.hidden {
+            display: none;
+        }
+
+        /* AI Summary Card */
+        .ai-category-summary {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .ai-summary-text {
+            display: flex;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .ai-summary-text i {
+            color: #667eea;
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .ai-summary-text p {
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .ai-regenerate-btn {
+            background: transparent;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .ai-regenerate-btn:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        /* Subcategory List */
+        .ai-subcategory-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .ai-subcategory-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-tertiary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-subcategory-item:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .ai-subcategory-name {
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .ai-subcategory-count {
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* AI Feedback Items */
+        .ai-feedback-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ai-feedback-item {
+            display: grid;
+            grid-template-columns: 60px 1fr auto;
+            grid-template-rows: auto auto;
+            gap: 8px 12px;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-feedback-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .ai-feedback-confidence {
+            width: 60px;
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .confidence-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #3b82f6);
+            border-radius: 3px;
+        }
+
+        .confidence-bar.low {
+            background: linear-gradient(90deg, #fbbf24, #f97316);
+        }
+
+        .ai-feedback-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ai-feedback-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-feedback-date {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .ai-feedback-labels {
+            grid-column: 2 / -1;
+            display: flex;
+            gap: 6px;
+        }
+
+        .ai-label {
+            background: rgba(102, 126, 234, 0.15);
+            color: #667eea;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* Needs Review Badge */
+        .needs-review-badge {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .needs-review-badge i {
+            font-size: 10px;
+        }
+
+        /* Show More Link */
+        .ai-show-more {
+            text-align: center;
+            padding: 10px;
+            color: #667eea;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-show-more:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 6px;
+        }
+
+        /* Empty State for AI Summary */
+        .ai-empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .ai-empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #667eea;
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
@@ -2622,35 +3034,95 @@
             <p class="admin-subtitle">Manage client feedback and bug reports</p>
         </div>
 
-        <!-- Stats -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Total Feedback</h3>
-                <div class="stat-value" id="totalFeedback">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>Open Items</h3>
-                <div class="stat-value" id="openFeedback" style="color: #60a5fa;">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>In Progress</h3>
-                <div class="stat-value" id="inProgressFeedback" style="color: #fbbf24;">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>Resolved</h3>
-                <div class="stat-value" id="resolvedFeedback" style="color: #22c55e;">0</div>
+        <!-- Admin Tab Navigation -->
+        <div class="admin-tabs-container">
+            <div class="admin-tabs">
+                <button class="admin-tab active" onclick="switchAdminTab('feedback')">
+                    <i class="fas fa-list"></i>
+                    <span>All Feedback</span>
+                </button>
+                <button class="admin-tab" onclick="switchAdminTab('ai-summary')">
+                    <i class="fas fa-brain"></i>
+                    <span>AI Summary</span>
+                </button>
             </div>
         </div>
 
-        <!-- Feedback List -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h3 style="margin: 0; color: var(--text-primary);">Recent Feedback</h3>
-            <button onclick="resetToDemoData()" style="padding: 8px 16px; background: #3a4245; color: #dbe1e2; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Reset Demo Data</button>
+        <!-- Tab Content: All Feedback -->
+        <div id="feedbackTabContent" class="admin-tab-content active">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Feedback</h3>
+                    <div class="stat-value" id="totalFeedback">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Open Items</h3>
+                    <div class="stat-value" id="openFeedback" style="color: #60a5fa;">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>In Progress</h3>
+                    <div class="stat-value" id="inProgressFeedback" style="color: #fbbf24;">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Resolved</h3>
+                    <div class="stat-value" id="resolvedFeedback" style="color: #22c55e;">0</div>
+                </div>
+            </div>
+
+            <!-- Feedback List -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: var(--text-primary);">Recent Feedback</h3>
+                <button onclick="resetToDemoData()" style="padding: 8px 16px; background: #3a4245; color: #dbe1e2; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Reset Demo Data</button>
+            </div>
+            <div id="feedbackList" class="feedback-list">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <p>No feedback submitted yet. Try submitting one using the widget!</p>
+                </div>
+            </div>
         </div>
-        <div id="feedbackList" class="feedback-list">
-            <div class="empty-state">
-                <div class="empty-state-icon">📭</div>
-                <p>No feedback submitted yet. Try submitting one using the widget!</p>
+
+        <!-- Tab Content: AI Summary -->
+        <div id="aiSummaryTabContent" class="admin-tab-content">
+            <!-- AI Stats -->
+            <div class="ai-stats-row">
+                <div class="ai-stat-card">
+                    <div class="ai-stat-icon"><i class="fas fa-tags"></i></div>
+                    <div class="ai-stat-content">
+                        <div class="ai-stat-value" id="classifiedCount">0</div>
+                        <div class="ai-stat-label">Classified</div>
+                    </div>
+                </div>
+                <div class="ai-stat-card">
+                    <div class="ai-stat-icon warning"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="ai-stat-content">
+                        <div class="ai-stat-value" id="needsReviewCount">0</div>
+                        <div class="ai-stat-label">Needs Review</div>
+                    </div>
+                </div>
+                <div class="ai-stat-card">
+                    <div class="ai-stat-icon success"><i class="fas fa-check-circle"></i></div>
+                    <div class="ai-stat-content">
+                        <div class="ai-stat-value" id="verifiedCount">0</div>
+                        <div class="ai-stat-label">Verified</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reclassify Button -->
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                <button onclick="reclassifyAllFeedback()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-sync-alt"></i> Reclassify All
+                </button>
+            </div>
+
+            <!-- Category Groups -->
+            <div id="aiCategoryGroups" class="ai-category-groups">
+                <div class="ai-empty-state">
+                    <i class="fas fa-robot"></i>
+                    <p>No classified feedback yet. Submit feedback to see AI-powered insights.</p>
+                </div>
             </div>
         </div>
     </div>
